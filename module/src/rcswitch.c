@@ -7,8 +7,7 @@
  * Credits: 
  *
  * Most of the parts for sending command to the RCSwitches over RF are
- * taken from xkonis raspbarry-remote: 
- *	https://github.com/xkonni/raspberry-remote
+ * taken from  r10r [rcswitch-pi] (https://github.com/r10r/rcswitch-pi)
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -26,14 +25,18 @@
 #include <linux/gpio.h>
 #include <linux/delay.h>
 
+
 /* TX-GPIO to 433Mhz sender */
 static int tx_gpio = 9;
 
 /* EN-GPIO to 433Mhz sender */
 static int en_gpio = 7;
 
-/* duration of a single pulse in usec */
+/* Duration of a single pulse in usec */
 static int pulse_duration = 350;
+
+/* How many times to repeat a message */
+static int tx_repeat = 10;
 
 /* Module param for TX-GPIO */
 module_param(tx_gpio, int, 0);
@@ -41,21 +44,22 @@ MODULE_PARM_DESC(tx_gpio, "Number of GPIO to which TX of 433Mhz sender is connec
 
 /* Module param for EN-GPIO */
 module_param(en_gpio, int, 0);
-MODULE_PARM_DESC(en_gpio, "Number of GPIO to which 3v3 of 433Mhz sender is connected (default 7/RTS).");
+MODULE_PARM_DESC(en_gpio, "Number of GPIO to which 3v3 of 433Mhz sender is connected (default 7/RTS, -1 to not use EN).");
 
 /* Module param for pulse duration */
 module_param(pulse_duration, int, 0);
 MODULE_PARM_DESC(pulse_duration, "Duration of a single pulse in usec. (default 350)");
 
+/* Module param for TX-repeat */
+module_param(tx_repeat, int, 0);
+MODULE_PARM_DESC(tx_gpio, "Number of how many times message is repeated (default 10).");
+
+
+/* Central send method - for detais see below */
 void send(const char *command);
 
-/**
- * SYSFS STUFF (to register controll interface under /sys/kernel/rcswitch/comman
- */
 
-/*
- * send command to switch
- */
+/* SYSFS: send command to switch */
 static ssize_t sysfs_command_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
     send(buf);
@@ -65,19 +69,50 @@ static ssize_t sysfs_command_store(struct kobject *kobj, struct kobj_attribute *
 
 static struct kobj_attribute command_attribute = __ATTR(command, 0222, NULL, sysfs_command_store);
 
-/* List of all attributes exported to sysfs */
+/* SYSFS: get power state: on (1)/off (0)/disabled (-1) */
+static ssize_t sysfs_power_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+    if(en_gpio != -1)
+    {
+        return sprintf(buf, "%d\n", gpio_get_value(en_gpio));
+    }
+    
+    return sprintf(buf, "%d\n", -1);
+}
+
+/* SYSFS: set power state to on (1)/off (0) */
+static ssize_t sysfs_power_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+{
+    if(en_gpio != -1 && count >= 1)
+    {
+        if(buf[0] == '1')
+        {
+            gpio_set_value(en_gpio, 1);
+        }
+        else if(buf[0] == '0')
+        {
+            gpio_set_value(en_gpio, 0);
+        }
+    }
+
+    return count;
+}
+
+static struct kobj_attribute power_attribute = __ATTR(power, 0666, sysfs_power_show ,sysfs_power_store);
+
+/* SYSFS: List of all attributes exported to sysfs */
 static struct attribute *attrs[] = {
     &command_attribute.attr,
+    &power_attribute.attr,
     NULL,
 };
 
-/* Attributes for sysfs in a group */
+/* SYSFS: Attributes for sysfs in a group */
 static struct attribute_group attr_group = {
     .attrs = attrs,
 };
 
-
-/* Kernel object for sysfs */
+/* SYSFS: Kernel object for sysfs */
 static struct kobject *rcswitch_kobj;
 
 /**
@@ -111,7 +146,7 @@ static struct kobject *rcswitch_kobj;
 #define SEND_SYNC() 	transmit(1,31)
 
 /**
- * Make code-word
+ * Make code-word out of a group, channel code and status
  */
 char *get_code_word(char* group, int channel_code, int status)
 {
@@ -126,7 +161,7 @@ char *get_code_word(char* group, int channel_code, int status)
         return 0;
     }
 
-    for (i = 0; i<5; i++)
+    for (i = 0; i < 5; i++)
     {
         if (group[i] == '0')
         {
@@ -142,7 +177,7 @@ char *get_code_word(char* group, int channel_code, int status)
         }
     }
 
-    for (i = 0; i<5; i++)
+    for (i = 0; i < 5; i++)
     {
         ret[ret_pos++] = code[ channel_code ][i];
     }
@@ -165,7 +200,7 @@ char *get_code_word(char* group, int channel_code, int status)
 
 
 /**
- * Transmit high low/pulse
+ * Transmit high low/pulse, each a multible of pulse_duration.
  */
 void transmit(int high_count, int low_count)
 {
@@ -176,14 +211,14 @@ void transmit(int high_count, int low_count)
 }
 
 /**
- * Sends a code word
+ * Sends a code word using 0, F or 1. 
  */
 void send_tri_state(char* code_word)
 {
     int repeat = 0;
     int i = 0;
 
-    for(repeat=0; repeat<10; repeat++)
+    for(repeat = 0; repeat < tx_repeat; repeat++)
     {
         i = 0;
         while (code_word[i] != 0)
@@ -280,7 +315,7 @@ void send(const char *command)
     send_tri_state(get_code_word(address, channel, state));
 }
 
-/*
+/**
  * Module init function
  */
 static int __init rcswitch_init(void)
@@ -288,8 +323,7 @@ static int __init rcswitch_init(void)
     int ret = 0;
 
     printk(KERN_INFO "rcswitch: init");
-    printk(KERN_INFO "rcswitch: using gpio #%d for TX\n", tx_gpio);
-    printk(KERN_INFO "rcswitch: using gpio #%d for EN\n", en_gpio);
+    printk(KERN_INFO "rcswitch: using tx_repeat of %d\n", tx_repeat);
 
     /* register sysfs entry */
     rcswitch_kobj = kobject_create_and_add("rcswitch", kernel_kobj);
@@ -318,23 +352,32 @@ static int __init rcswitch_init(void)
         return ret;
     }
 
-    /* register EN-GPIO */
-    ret = gpio_request_one(en_gpio, GPIOF_OUT_INIT_HIGH, "rcswitch_en");
+    printk(KERN_INFO "rcswitch: using gpio #%d for TX\n", tx_gpio);
 
-    if(ret)
+    if(en_gpio != -1)
     {
-        gpio_free(tx_gpio);
+        /* register EN-GPIO */
+        ret = gpio_request_one(en_gpio, GPIOF_OUT_INIT_HIGH, "rcswitch_en");
 
-        printk(KERN_ERR "Unable to request GPIO for EN: %d\n", ret);
-        return ret;
+        if(ret)
+        {
+            gpio_free(tx_gpio);
+
+            printk(KERN_ERR "Unable to request GPIO for EN: %d\n", ret);
+            return ret;
+        }
+
+        printk(KERN_INFO "rcswitch: using gpio #%d for EN\n", en_gpio);
     }
-
-    // send("11111A1");
+    else
+    {
+        printk(KERN_INFO "rcswitch: EN disabled\n");
+    }
 
     return ret;
 }
 
-/*
+/**
  * Module exit function
  */
 static void __exit rcswitch_exit(void)
@@ -347,16 +390,18 @@ static void __exit rcswitch_exit(void)
 
     /* set to low */
     gpio_set_value(tx_gpio, 0);
-    gpio_set_value(en_gpio, 0);
-
-    /* unregister */
     gpio_free(tx_gpio);
-    gpio_free(en_gpio);
+
+    if(en_gpio != -1)
+    {
+        gpio_set_value(en_gpio, 0);
+        gpio_free(en_gpio);
+    }
 }
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Stefan Wendler");
-MODULE_DESCRIPTION("Controll RCSwitch");
+MODULE_DESCRIPTION("Control RCSwitch over 433MHz transmitter.");
 
 module_init(rcswitch_init);
 module_exit(rcswitch_exit);

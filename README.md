@@ -1,12 +1,12 @@
-RCSwitch kenrnel module - operates 433MHz RCSwitches
-=====================================================
+RCSwitch Linux Kernel module - operates 433MHz RCSwitches
+=========================================================
 18.07.2014 Stefan Wendler
 sw@kaltpost.de
 
 Credits: 
 
 Most of the parts for sending command to the RCSwitches over RF are
-taken from xkonis [raspbarry-remote] (https://github.com/xkonni/raspberry-remote)
+taken from r10r [rcswitch-pi] (https://github.com/r10r/rcswitch-pi)
  
 Project Directory Layout
 ------------------------
