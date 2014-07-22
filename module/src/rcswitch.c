@@ -26,10 +26,10 @@
 #include <linux/delay.h>
 
 
-/* TX-GPIO to 433Mhz sender */
+/* TX-GPIO to 434Mhz sender */
 static int tx_gpio = 9;
 
-/* EN-GPIO to 433Mhz sender */
+/* EN-GPIO to 434Mhz sender */
 static int en_gpio = 7;
 
 /* Duration of a single pulse in usec */
@@ -40,11 +40,11 @@ static int tx_repeat = 10;
 
 /* Module param for TX-GPIO */
 module_param(tx_gpio, int, 0);
-MODULE_PARM_DESC(tx_gpio, "Number of GPIO to which TX of 433Mhz sender is connected (default 9/CTS).");
+MODULE_PARM_DESC(tx_gpio, "Number of GPIO to which TX of 434Mhz sender is connected (default 9/CTS).");
 
 /* Module param for EN-GPIO */
 module_param(en_gpio, int, 0);
-MODULE_PARM_DESC(en_gpio, "Number of GPIO to which 3v3 of 433Mhz sender is connected (default 7/RTS, -1 to not use EN).");
+MODULE_PARM_DESC(en_gpio, "Number of GPIO to which 3v3 of 434Mhz sender is connected (default 7/RTS, -1 to not use EN).");
 
 /* Module param for pulse duration */
 module_param(pulse_duration, int, 0);
@@ -52,7 +52,7 @@ MODULE_PARM_DESC(pulse_duration, "Duration of a single pulse in usec. (default 3
 
 /* Module param for TX-repeat */
 module_param(tx_repeat, int, 0);
-MODULE_PARM_DESC(tx_gpio, "Number of how many times message is repeated (default 10).");
+MODULE_PARM_DESC(tx_repeat, "Number of how many times a message is repeated (default 10).");
 
 
 /* Central send method - for detais see below */
@@ -251,6 +251,7 @@ void send_tri_state(char* code_word)
  * Where: 
  * AAAAA 	- address bits - e.g. '11111'
  * C		- channel A, B, C or D - e.g. 'A'
+ *                instead of A, B, C, D one could also use 1, 2, 3 or 4
  * S		- state 1 (on) or 0 (off) - e.g. '1'
  * 
  * Complete command string examples: 
@@ -267,7 +268,7 @@ void send(const char *command)
 
     if(strlen(command) < 7)
     {
-        printk("Command lenght MUST be at least 7 characters\n");
+        printk(KERN_ERR "Command lenght MUST be at least 7 characters\n");
         return;
     }
 
@@ -281,7 +282,7 @@ void send(const char *command)
         }
         else
         {
-            printk("Invalid character in address part (only 0 and 1 allowed, but found %c)\n", command[i]);
+            printk(KERN_ERR "Invalid character in address part (only 0 and 1 allowed, but found %c)\n", command[i]);
             return;
         }
     }
@@ -291,9 +292,13 @@ void send(const char *command)
     {
         channel = command[i++] - 'A' + 1;
     }
+    else if(command[i] >= '1' && command[i] <= '4')
+    {
+        channel = command[i++] - '1' + 1;
+    }
     else
     {
-        printk("Invalid character in channel part (only A, B, C and D allowed, but found %c)\n", command[i]);
+        printk(KERN_ERR "Invalid character in channel part (only A or 1, B or 2, C or 3 and D or 4 allowed, but found %c)\n", command[i]);
         return;
     }
 
@@ -305,7 +310,7 @@ void send(const char *command)
     }
     else
     {
-        printk("Invalid character in state part (only 0 and 1 allowed, but found %c)\n", command[i]);
+        printk(KERN_ERR "Invalid character in state part (only 0 and 1 allowed, but found %c)\n", command[i]);
         return;
     }
 
