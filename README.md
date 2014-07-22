@@ -33,6 +33,7 @@ The top-level directory structure of the project looks something like this:
 * `README.md`		this README
 * `setenv_*.sh`		source to set cross-compile environment
 * `module`		the kernel module
+* `clients`		various client libs/programs to access the kernel module
 
 
 Prerequisites
