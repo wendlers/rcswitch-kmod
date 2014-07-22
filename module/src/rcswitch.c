@@ -347,6 +347,7 @@ static int __init rcswitch_init(void)
     }
 
     printk(KERN_INFO "rcswitch: registered command interface under: /sys/kernel/rcswitch/command\n");
+    printk(KERN_INFO "rcswitch: registered power   interface under: /sys/kernel/rcswitch/power\n");
 
     /* register TX-GPIO */
     ret = gpio_request_one(tx_gpio, GPIOF_OUT_INIT_LOW, "rcswitch_tx");
@@ -406,7 +407,7 @@ static void __exit rcswitch_exit(void)
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Stefan Wendler");
-MODULE_DESCRIPTION("Control RCSwitch over 433MHz transmitter.");
+MODULE_DESCRIPTION("Control RCSwitch over 434MHz transmitter.");
 
 module_init(rcswitch_init);
 module_exit(rcswitch_exit);

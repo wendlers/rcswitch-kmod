@@ -1,0 +1,10 @@
+.idea
+.tmp_versions
+Module.symvers
+modules.order
+rcswitch.mod.c
+*.pyc
+*.o
+*.ko
+*.cmd
+tmp
