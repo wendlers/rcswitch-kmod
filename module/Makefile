@@ -16,4 +16,4 @@ deploy: build
 
 clean:
 	(cd ./src && make clean)
-	test -d ./deploy && rm -fr ./deploy
+	rm -fr ./deploy

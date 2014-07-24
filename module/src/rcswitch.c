@@ -24,13 +24,25 @@
 #include <linux/kernel.h>
 #include <linux/gpio.h>
 #include <linux/delay.h>
+#include <linux/spinlock.h>
 
+#ifdef CONFIG_ARM
+#define RASPI
+#endif
 
 /* TX-GPIO to 434Mhz sender */
-static int tx_gpio = 9;
+#ifdef RASPI 
+static int tx_gpio = 17;		/* RasPi */
+#else
+static int tx_gpio = 9;			/* Carambola */
+#endif
 
 /* EN-GPIO to 434Mhz sender */
-static int en_gpio = 7;
+#ifdef RASPI 
+static int en_gpio = -1;		/* RasPI, NO power management */
+#else
+static int en_gpio = 7;			/* Carambola */
+#endif
 
 /* Duration of a single pulse in usec */
 static int pulse_duration = 350;
@@ -40,11 +52,19 @@ static int tx_repeat = 10;
 
 /* Module param for TX-GPIO */
 module_param(tx_gpio, int, 0);
+#ifdef RASPI 
+MODULE_PARM_DESC(tx_gpio, "Number of GPIO to which TX of 434Mhz sender is connected (17).");
+#else
 MODULE_PARM_DESC(tx_gpio, "Number of GPIO to which TX of 434Mhz sender is connected (default 9/CTS).");
+#endif
 
 /* Module param for EN-GPIO */
 module_param(en_gpio, int, 0);
+#ifdef RASPI 
+MODULE_PARM_DESC(en_gpio, "Number of GPIO to which 3v3 of 434Mhz sender is connected (default -1, -1 to not use EN).");
+#else
 MODULE_PARM_DESC(en_gpio, "Number of GPIO to which 3v3 of 434Mhz sender is connected (default 7/RTS, -1 to not use EN).");
+#endif
 
 /* Module param for pulse duration */
 module_param(pulse_duration, int, 0);
@@ -54,6 +74,8 @@ MODULE_PARM_DESC(pulse_duration, "Duration of a single pulse in usec. (default 3
 module_param(tx_repeat, int, 0);
 MODULE_PARM_DESC(tx_repeat, "Number of how many times a message is repeated (default 10).");
 
+/* lock to prevent sending of more the one message at once over RF */
+DEFINE_SPINLOCK(send_lock);
 
 /* Central send method - for detais see below */
 void send(const char *command);
@@ -62,7 +84,11 @@ void send(const char *command);
 /* SYSFS: send command to switch */
 static ssize_t sysfs_command_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
+    spin_lock(&send_lock);
+
     send(buf);
+
+    spin_unlock(&send_lock);
 
     return count;
 }
@@ -179,7 +205,7 @@ char *get_code_word(char* group, int channel_code, int status)
 
     for (i = 0; i < 5; i++)
     {
-        ret[ret_pos++] = code[ channel_code ][i];
+        ret[ret_pos++] = code[channel_code][i];
     }
 
     if (status)

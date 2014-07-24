@@ -17,4 +17,4 @@ deploy: build
 	
 clean:
 	make -C ./module clean
-	test -d ./deploy && rm -fr ./deploy
+	rm -fr ./deploy
