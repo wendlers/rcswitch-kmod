@@ -294,7 +294,7 @@ void send(const char *command)
 
     if(strlen(command) < 7)
     {
-        printk(KERN_ERR "Command lenght MUST be at least 7 characters\n");
+        printk(KERN_ERR "rcswitch: Command lenght MUST be at least 7 characters\n");
         return;
     }
 
@@ -308,7 +308,7 @@ void send(const char *command)
         }
         else
         {
-            printk(KERN_ERR "Invalid character in address part (only 0 and 1 allowed, but found %c)\n", command[i]);
+            printk(KERN_ERR "rcswitch: invalid character in address part (only 0 and 1 allowed, but found %c)\n", command[i]);
             return;
         }
     }
@@ -324,7 +324,7 @@ void send(const char *command)
     }
     else
     {
-        printk(KERN_ERR "Invalid character in channel part (only A or 1, B or 2, C or 3 and D or 4 allowed, but found %c)\n", command[i]);
+        printk(KERN_ERR "rcswitch: invalid character in channel part (only A or 1, B or 2, C or 3 and D or 4 allowed, but found %c)\n", command[i]);
         return;
     }
 
@@ -336,7 +336,7 @@ void send(const char *command)
     }
     else
     {
-        printk(KERN_ERR "Invalid character in state part (only 0 and 1 allowed, but found %c)\n", command[i]);
+        printk(KERN_ERR "rcswitch: invalid character in state part (only 0 and 1 allowed, but found %c)\n", command[i]);
         return;
     }
 
@@ -380,7 +380,7 @@ static int __init rcswitch_init(void)
 
     if(ret)
     {
-        printk(KERN_ERR "Unable to request GPIO for TX: %d\n", ret);
+        printk(KERN_ERR "rcswitch: unable to request GPIO for TX: %d\n", ret);
         return ret;
     }
 
@@ -395,7 +395,7 @@ static int __init rcswitch_init(void)
         {
             gpio_free(tx_gpio);
 
-            printk(KERN_ERR "Unable to request GPIO for EN: %d\n", ret);
+            printk(KERN_ERR "rcswitch: unable to request GPIO for EN: %d\n", ret);
             return ret;
         }
 
