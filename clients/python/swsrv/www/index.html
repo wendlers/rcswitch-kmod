@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.css">
+    <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
+    <script src="./js/swsrv.js"></script>
+</head>
+<body>
+
+<div data-role="page" id="pageone">
+
+  <div data-role="header">
+    <h1>RCSwitch</h1>
+  </div>
+
+  <div data-role="main" class="ui-content">
+    <h2>Available RC Switches</h2>
+    <ul data-role="listview" data-inset="true">
+      <li data-role="list-divider">RC Switch A</li>
+      <li><a href="javascript:swsrv.sendCommand('11111', 'A', '1')" class="ui-btn">On</a></li>
+      <li><a href="javascript:swsrv.sendCommand('11111', 'A', '0')" class="ui-btn">Off</a></li>
+      <li data-role="list-divider">RC Switch B</li>
+      <li><a href="javascript:swsrv.sendCommand('11111', 'B', '1')" class="ui-btn">On</a></li>
+      <li><a href="javascript:swsrv.sendCommand('11111', 'B', '0')" class="ui-btn">Off</a></li>
+      <li data-role="list-divider">RC Switch C</li>
+      <li><a href="javascript:swsrv.sendCommand('11111', 'C', '1')" class="ui-btn">On</a></li>
+      <li><a href="javascript:swsrv.sendCommand('11111', 'C', '0')" class="ui-btn">Off</a></li>
+      <li data-role="list-divider">RC Switch D</li>
+      <li><a href="javascript:swsrv.sendCommand('11111', 'D', '1')" class="ui-btn">On</a></li>
+      <li><a href="javascript:swsrv.sendCommand('11111', 'D', '0')" class="ui-btn">Off</a></li>
+    </ul>
+  </div>
+
+  <div data-role="popup" id="serverError" class="ui-content">
+    <a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn ui-icon-delete ui-btn-icon-notext ui-btn-left">Close</a>
+    <h2>Server Error</h2>
+    <p>A server error occurred!</p>
+  </div>
+
+  <div data-role="footer">
+    <h1>RCSwitch</h1>
+  </div>
+
+</div>
+
+<script>
+swsrv.setBaseUrl('http://172.16.100.21:8080');
+// swsrv.setBaseUrl('http://172.16.100.30:8080');
+// $('#mainPage').on("pageshow", function(event) { ivg.fillUserList('#users'); });
+</script>
+
+</body>
+</html>
